@@ -64,6 +64,11 @@ public:
    */
   void UpdateEKF(const Eigen::VectorXd &z);
 
+  /**
+   * Calculate the h function for the radar measurement.
+   * @param z The measurement at k+1
+   */
+  Eigen::VectorXd transformRadarPred(const Eigen::VectorXd &x);
 };
 
 #endif /* KALMAN_FILTER_H_ */
