@@ -41,7 +41,7 @@ FusionEKF::FusionEKF() {
 
   Hj_ << 1, 1, 0, 0,
           1, 1, 0, 0,
-          1, 1, 1, 1,
+          1, 1, 1, 1;
 
   // Initialize ekf variables from part 13
   ekf_.F_ = MatrixXd(4, 4);
@@ -86,15 +86,6 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
-      ekf_.x_(0) = measurement_pack.raw_measurements_(0);
-      ekf_.x_(1) = measurement_pack.raw_measurements_(1);
-      ekf_.x_(2) = measurement_pack.raw_measurements_(2);
-      ekf_.x_(3) = measurement_pack.raw_measurements_(3);
-    }
-    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
-      /**
-      Initialize state.
-      */
       double rho = measurement_pack.raw_measurements_(0);
       double phi = measurement_pack.raw_measurements_(1);
       double rho_dot = measurement_pack.raw_measurements_(2);
@@ -102,6 +93,13 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       ekf_.x_(1) = rho * sin(phi);
       ekf_.x_(2) = rho_dot * cos(phi);
       ekf_.x_(3) = rho_dot * sin(phi);
+    }
+    else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+      /**
+      Initialize state.
+      */
+      ekf_.x_(0) = measurement_pack.raw_measurements_(0);
+      ekf_.x_(1) = measurement_pack.raw_measurements_(1);
     }
 
     previous_timestamp_ = measurement_pack.timestamp_;
@@ -134,10 +132,10 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   double dt_3 = dt_2 * dt;
   double dt_4 = dt_3 * dt;
   ekf_.Q_ = MatrixXd(4, 4);
-  ekf_.Q_ <<  dt_4/4*noise_ax, 0, dt_3/2*noise_ax, 0,
-          0, dt_4/4*noise_ay, 0, dt_3/2*noise_ay,
-          dt_3/2*noise_ax, 0, dt_2*noise_ax, 0,
-          0, dt_3/2*noise_ay, 0, dt_2*noise_ay;
+  ekf_.Q_ <<  (dt_4 / 4) * noise_ax, 0, (dt_3 / 2) * noise_ax, 0,
+                0, (dt_4 / 4) * noise_ay, 0, (dt_3 / 2) * noise_ay,
+                (dt_3 / 2) * noise_ax, 0, dt_2 * noise_ax, 0,
+                0, (dt_3 / 2) * noise_ay, 0, dt_2 * noise_ay;
 
 
   ekf_.Predict();
@@ -160,7 +158,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     ekf_.UpdateEKF(measurement_pack.raw_measurements_);
   } else {
     // Laser updates
-    ekf_.H_ = Hj_;
+    ekf_.H_ = H_laser_;
     ekf_.R_ = R_laser_;
     ekf_.Update(measurement_pack.raw_measurements_);
   }
