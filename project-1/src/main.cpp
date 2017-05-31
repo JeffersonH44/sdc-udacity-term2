@@ -4,8 +4,11 @@
 #include <math.h>
 #include "FusionEKF.h"
 #include "tools.h"
+#include "Eigen/Dense"
 
 using namespace std;
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
 // for convenience
 using json = nlohmann::json;

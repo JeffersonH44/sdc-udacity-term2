@@ -41,6 +41,13 @@ void KalmanFilter::Update(const VectorXd &z) {
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
   VectorXd y = z - this->transformRadarPred(x_);
+  while (y(1) > M_PI) {
+    y(1) -= 2 * M_PI;
+  }
+  while (y(1) < -M_PI) {
+    y(1) += 2 * M_PI;
+  }
+
   MatrixXd Ht = H_.transpose();
   MatrixXd S = H_ * P_ * Ht + R_;
   MatrixXd Si = S.inverse();
@@ -61,7 +68,11 @@ Eigen::VectorXd KalmanFilter::transformRadarPred(const Eigen::VectorXd &x) {
   double vx = x(2);
   double vy = x(3);
   h_pred(0) = sqrt(px*px + py*py);
-  h_pred(1) = atan2(py, px);
+
+  if(fabs(px) > 0.0001){
+    h_pred(1) = atan2(py, px);
+  }
+
   if(fabs(h_pred(0)) < 0.01) {
     h_pred(2) = 0.0;
   } else {
