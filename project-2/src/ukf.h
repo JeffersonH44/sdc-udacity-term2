@@ -7,6 +7,7 @@
 #include <string>
 #include <fstream>
 #include <cmath>
+#include <tuple>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -65,6 +66,10 @@ public:
   ///* Augmented state dimension
   int n_aug_;
 
+  int n_radar;
+
+  int n_lidar;
+
   ///* Sigma point spreading parameter
   double lambda_;
 
@@ -107,12 +112,11 @@ public:
    */
   void UpdateRadar(MeasurementPackage meas_package);
 
-  void GenerateSigmaPoints(MatrixXd* Xsig_out);
-  void AugmentedSigmaPoints(MatrixXd* Xsig_out);
-  void SigmaPointPrediction(MatrixXd* Xsig_out);
-  void PredictMeanAndCovariance(VectorXd* x_pred, MatrixXd* P_pred);
-  void PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out);
-  void UpdateState(VectorXd* x_out, MatrixXd* P_out);
+  MatrixXd AugmentedSigmaPoints();
+  void SigmaPointPrediction(MatrixXd Xsig_aug, double delta_t);
+  void PredictMeanAndCovariance();
+  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> PredictRadarMeasurement();
+  void UpdateRadarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
 };
 
 #endif /* UKF_H */
