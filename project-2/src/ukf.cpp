@@ -99,11 +99,11 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
   if(is_initialized_) {
     double dt = (meas_package.timestamp_ - prev_timestamp_) / 1000000.0;
-    std::cout << "dt: " << dt << std::endl;
-    if(meas_package.sensor_type_ == MeasurementPackage::SensorType::LASER) {
-      // do nothing right now
-    } else {
-      this->Prediction(dt);
+    this->Prediction(dt);
+    if(use_laser_ && meas_package.sensor_type_ == MeasurementPackage::SensorType::LASER) {
+      this->UpdateLidar(meas_package);
+    }
+    if(use_radar_ && meas_package.sensor_type_ == MeasurementPackage::SensorType::RADAR) {
       this->UpdateRadar(meas_package);
     }
     prev_timestamp_ = meas_package.timestamp_;
@@ -162,7 +162,20 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the lidar NIS.
   */
+  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> tup = this->PredictLidarMeasurement();
 
+  VectorXd *z_pred = std::get<0>(tup);
+  MatrixXd *S = std::get<1>(tup);
+  MatrixXd *Zsig = std::get<2>(tup);
+
+  /*std::cout << *z_pred << std::endl;
+  std::cout << *S << std::endl;
+  std::cout << *Zsig << std::endl;*/
+  this->UpdateLidarState(*Zsig, *z_pred, *S, meas_package.raw_measurements_);
+
+  delete(z_pred);
+  delete(S);
+  delete(Zsig);
 }
 
 /**
@@ -436,8 +449,106 @@ void UKF::UpdateRadarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd 
   x_ = x_ + K * z_diff;
   P_ = P_ - K*S*K.transpose();
 
-  last_radar_NIS = Tools::calculateRadNIS(z_diff, S);
+  last_radar_NIS = Tools::calculateNIS(z_diff, S);
 /*******************************************************************************
  * Student part end
  ******************************************************************************/
 }
+
+std::tuple<VectorXd *, MatrixXd *, MatrixXd *> UKF::PredictLidarMeasurement() {
+  //create matrix for sigma points in measurement space
+  MatrixXd *Zsig = new MatrixXd(n_lidar, 2 * n_aug_ + 1);
+
+  //mean predicted measurement
+  VectorXd *z_pred = new VectorXd(n_lidar);
+
+  //measurement covariance matrix S
+  MatrixXd *S = new MatrixXd(n_lidar, n_lidar);
+
+/*******************************************************************************
+ * Student part begin
+ ******************************************************************************/
+
+  //transform sigma points into measurement space
+  for(int i = 0; i < 2 * n_aug_ + 1; ++i) {
+    VectorXd currentPred = VectorXd(n_lidar);
+    double px = Xsig_pred_(0, i);
+    double py = Xsig_pred_(1, i);
+    double v = Xsig_pred_(2, i);
+    double yaw = Xsig_pred_(3, i);
+    yaw = Tools::angleNormalization(yaw);
+
+    double sqrtVal = sqrt(px*px + py*py);
+    double v1 = cos(yaw)*v;
+    double v2 = sin(yaw)*v;
+
+    currentPred << px, py; // for laser
+
+    (*Zsig).col(i) = currentPred;
+  }
+  //calculate mean predicted measurement
+  (*z_pred).fill(0.0);
+  for (int i=0; i < 2*n_aug_+1; i++) {
+    *z_pred = *z_pred + weights_(i) * (*Zsig).col(i);
+  }
+  //calculate measurement covariance matrix S
+  (*S).fill(0.0);
+  for(int i = 0; i < 2 * n_aug_ + 1; ++i) {
+    VectorXd Zdiff = (*Zsig).col(i) - *z_pred;
+
+    // Zdiff(1) = Tools::angleNormalization(Zdiff(1));
+
+    *S += weights_(i) * Zdiff * Zdiff.transpose();
+  }
+
+  *S = *S + R_laser;
+
+/*******************************************************************************
+ * Student part end
+ ******************************************************************************/
+
+  return std::make_tuple(z_pred, S, Zsig);
+}
+
+void UKF::UpdateLidarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z) {
+  //create matrix for cross correlation Tc
+  MatrixXd Tc = MatrixXd(n_x_, n_lidar);
+
+/*******************************************************************************
+ * Student part begin
+ ******************************************************************************/
+
+  //calculate cross correlation matrix
+  Tc.fill(0.0);
+  for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //2n+1 simga points
+
+    //residual
+    VectorXd z_diff = Zsig.col(i) - z_pred;
+    //angle normalization just for radar
+    // z_diff(1) = Tools::angleNormalization(z_diff(1));
+
+    // state difference
+    VectorXd x_diff = Xsig_pred_.col(i) - x_;
+    //angle normalization because X contains the 5 variables
+    x_diff(3) = Tools::angleNormalization(x_diff(3));
+
+    Tc = Tc + weights_(i) * x_diff * z_diff.transpose();
+  }
+
+  //Kalman gain K;
+  MatrixXd K = Tc * S.inverse();
+
+  //residual
+  VectorXd z_diff = z - z_pred;
+
+  //angle normalization in case of radar
+  //z_diff(1) = Tools::angleNormalization(z_diff(1));
+
+  //update state mean and covariance matrix
+  x_ = x_ + K * z_diff;
+  P_ = P_ - K*S*K.transpose();
+
+  last_lidar_NIS = Tools::calculateNIS(z_diff, S);
+}
+
+

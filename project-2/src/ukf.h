@@ -124,6 +124,9 @@ public:
   void PredictMeanAndCovariance();
   std::tuple<VectorXd*, MatrixXd*, MatrixXd*> PredictRadarMeasurement();
   void UpdateRadarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
+
+  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> PredictLidarMeasurement();
+  void UpdateLidarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
 };
 
 #endif /* UKF_H */

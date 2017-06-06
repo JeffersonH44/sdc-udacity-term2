@@ -47,7 +47,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   return rmse;
 }
 
-double Tools::calculateRadNIS(Eigen::VectorXd z_diff, Eigen::MatrixXd S) {
+double Tools::calculateNIS(Eigen::VectorXd z_diff, Eigen::MatrixXd S) {
   return z_diff.transpose() * S.inverse() * z_diff;
 }
 
