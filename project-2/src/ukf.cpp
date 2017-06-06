@@ -551,4 +551,8 @@ void UKF::updateLidarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd 
   lastLidarNIS = Tools::calculateNIS(z_diff, S);
 }
 
+const double &UKF::getX(int i) const {
+  return x(i);
+}
+
 

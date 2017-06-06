@@ -15,75 +15,6 @@ using Eigen::VectorXd;
 
 class UKF {
 public:
-
-  ///* initially set to false, set to true in first call of ProcessMeasurement
-  bool isInitialized;
-
-  ///* if this is false, laser measurements will be ignored (except for init)
-  bool useLaser;
-
-  ///* if this is false, radar measurements will be ignored (except for init)
-  bool useRadar;
-
-  ///* state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
-  VectorXd x;
-
-  ///* state covariance matrix
-  MatrixXd P;
-
-  ///* predicted sigma points matrix
-  MatrixXd XSigPred;
-
-  ///* time when the state is true, in us
-  long long time_us_;
-
-  ///* Process noise standard deviation longitudinal acceleration in m/s^2
-  double stdAcc;
-
-  ///* Process noise standard deviation yaw acceleration in rad/s^2
-  double stdYawdd;
-
-  ///* Laser measurement noise standard deviation position1 in m
-  double stdLasPx;
-
-  ///* Laser measurement noise standard deviation position2 in m
-  double stdLasPy;
-
-  ///* Radar measurement noise standard deviation radius in m
-  double stdRadR;
-
-  ///* Radar measurement noise standard deviation angle in rad
-  double stdRadPhi;
-
-  ///* Radar measurement noise standard deviation radius change in m/s
-  double stdRadRd ;
-
-  ///* Weights of sigma points
-  VectorXd weights;
-
-  ///* State dimension
-  int nx;
-
-  ///* Augmented state dimension
-  int nAug;
-
-  int nRadar;
-
-  int nLidar;
-
-  ///* Sigma point spreading parameter
-  double lambda;
-
-  ///* previous timestamp
-  long prevTimestamp;
-
-  double lastRadarNIS;
-  double lastLidarNIS;
-
-  MatrixXd RRadar;
-  MatrixXd RLidar;
-
-
   /**
    * Constructor
    */
@@ -127,6 +58,55 @@ public:
 
   std::tuple<VectorXd*, MatrixXd*, MatrixXd*> predictLidarMeasurement();
   void updateLidarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
+
+  const double &getX(int i) const;
+private:
+  ///* initially set to false, set to true in first call of ProcessMeasurement
+  bool isInitialized;
+  ///* if this is false, laser measurements will be ignored (except for init)
+  bool useLaser;
+  ///* if this is false, radar measurements will be ignored (except for init)
+  bool useRadar;
+  ///* state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
+  VectorXd x;
+  ///* state covariance matrix
+  MatrixXd P;
+  ///* predicted sigma points matrix
+  MatrixXd XSigPred;
+  ///* time when the state is true, in us
+  // long long time_us_;
+  ///* Process noise standard deviation longitudinal acceleration in m/s^2
+  double stdAcc;
+  ///* Process noise standard deviation yaw acceleration in rad/s^2
+  double stdYawdd;
+  ///* Laser measurement noise standard deviation position1 in m
+  double stdLasPx;
+  ///* Laser measurement noise standard deviation position2 in m
+  double stdLasPy;
+  ///* Radar measurement noise standard deviation radius in m
+  double stdRadR;
+  ///* Radar measurement noise standard deviation angle in rad
+  double stdRadPhi;
+  ///* Radar measurement noise standard deviation radius change in m/s
+  double stdRadRd;
+  ///* Weights of sigma points
+  VectorXd weights;
+  ///* State dimension
+  int nx;
+  ///* Augmented state dimension
+  int nAug;
+  int nRadar;
+  int nLidar;
+  ///* Sigma point spreading parameter
+  double lambda;
+  ///* previous timestamp
+  long prevTimestamp;
+  ///* NIS for radar and lidar
+  double lastRadarNIS;
+  double lastLidarNIS;
+  ///* Noise matrix for radar and lidar
+  MatrixXd RRadar;
+  MatrixXd RLidar;
 };
 
 #endif /* UKF_H */

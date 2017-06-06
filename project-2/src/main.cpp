@@ -113,10 +113,10 @@ int main()
 
     	  VectorXd estimate(4);
 
-    	  double p_x = ukf.x(0);
-    	  double p_y = ukf.x(1);
-    	  double v  = ukf.x(2);
-    	  double yaw = ukf.x(3);
+    	  double p_x = ukf.getX(0);
+    	  double p_y = ukf.getX(1);
+    	  double v  = ukf.getX(2);
+    	  double yaw = ukf.getX(3);
 
     	  double v1 = cos(yaw)*v;
     	  double v2 = sin(yaw)*v;
