@@ -111,12 +111,15 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     // TODO: do not forget to change those values
     P_ << 1, 0, 0, 0, 0,
           0, 1, 0, 0, 0,
-          0, 0, 20, 0, 0,
-          0, 0, 0, 15, 0,
-          0, 0, 0, 0, 0.1;
+          0, 0, 1, 0, 0,
+          0, 0, 0, 1, 0,
+          0, 0, 0, 0, 1;
 
     is_initialized_ = true;
   }
+
+  std::cout << x_ << std::endl;
+  std::cout << P_ << std::endl;
 }
 
 /**
@@ -171,11 +174,14 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   MatrixXd *S = std::get<1>(tup);
   MatrixXd *Zsig = std::get<2>(tup);
 
-  std::cout << *z_pred << std::endl;
+  /*std::cout << *z_pred << std::endl;
   std::cout << *S << std::endl;
-  std::cout << *Zsig << std::endl;
+  std::cout << *Zsig << std::endl;*/
   this->UpdateRadarState(*Zsig, *z_pred, *S, meas_package.raw_measurements_);
 
+  delete(z_pred);
+  delete(S);
+  delete(Zsig);
 }
 
 MatrixXd UKF::AugmentedSigmaPoints() {

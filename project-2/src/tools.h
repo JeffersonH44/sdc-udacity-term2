@@ -24,6 +24,10 @@ public:
   */
   VectorXd CalculateRMSE(const vector<VectorXd> &estimations, const vector<VectorXd> &ground_truth);
 
+  /**
+   * A helper method to calculate NIS
+   */
+  double calculateRadNIS(Eigen::VectorXd z, Eigen::VectorXd z_pred, Eigen::MatrixXd S);
 };
 
 #endif /* TOOLS_H_ */
