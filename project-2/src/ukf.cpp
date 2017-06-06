@@ -29,10 +29,10 @@ UKF::UKF() {
   P_ = MatrixXd(n_x_, n_x_);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 0.7;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -65,11 +65,20 @@ UKF::UKF() {
 
   // weights for the sigma points
   weights_ = VectorXd(2 * n_aug_ +1);
-  weights_.fill(1 / (2*(lambda_ + n_aug_)));
+  weights_.fill(1.0 / (2.0*(lambda_ + n_aug_)));
   weights_(0) = lambda_ / (lambda_ + n_aug_);
 
   last_lidar_NIS = 0.0;
   last_radar_NIS = 0.0;
+
+  R_laser = MatrixXd(n_lidar, n_lidar);
+  R_laser << std_laspx_ * std_laspx_, 0,
+             0, std_laspy_ * std_laspy_;
+
+  R_radar = MatrixXd(n_radar, n_radar);
+  R_radar << std_radr_ * std_radr_, 0, 0,
+             0, std_radphi_ * std_radphi_, 0,
+             0, 0, std_radrd_ * std_radrd_;
 
   is_initialized_ = false;
 }
@@ -109,15 +118,15 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       double rho = meas_package.raw_measurements_[0];
       double phi = meas_package.raw_measurements_[1];
       double rho_dot = meas_package.raw_measurements_[2];
-      x_ << rho * cos(phi), rho * sin(phi), 0.0, 0.0, rho_dot;
+      x_ << rho * cos(phi), rho * sin(phi), 0.0, 0.0, 0.0;
     }
 
     // TODO: do not forget to change those values
-    P_ << 1, 0, 0, 0, 0,
-          0, 1, 0, 0, 0,
+    P_ << 50, 0, 0, 0, 0,
+          0, 50, 0, 0, 0,
           0, 0, 1, 0, 0,
-          0, 0, 0, 1, 0,
-          0, 0, 0, 0, 1;
+          0, 0, 0, 0.5, 0,
+          0, 0, 0, 0, 0.5;
 
     is_initialized_ = true;
   }
@@ -174,10 +183,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   VectorXd *z_pred = std::get<0>(tup);
   MatrixXd *S = std::get<1>(tup);
   MatrixXd *Zsig = std::get<2>(tup);
-
-  last_radar_NIS = Tools::calculateRadNIS(meas_package.raw_measurements_, *z_pred, *S);
-
-  std::cout << "NIS: " << last_radar_NIS << std::endl;
 
   /*std::cout << *z_pred << std::endl;
   std::cout << *S << std::endl;
@@ -303,23 +308,30 @@ void UKF::PredictMeanAndCovariance() {
  * Student part begin
  ******************************************************************************/
 
-  //set weights
-  weights_.fill(1 / (2*(lambda_ + n_aug_)));
-  weights_(0) = lambda_ / (lambda_ + n_aug_);
+  //create vector for predicted state
+  VectorXd x = VectorXd(n_x_);
 
+  //create covariance matrix for prediction
+  MatrixXd P = MatrixXd::Zero(n_x_, n_x_);
   //predict state mean
-  for(int i = 0; i < n_x_; ++i) {
-    x_(i) = weights_.dot(Xsig_pred_.row(i));
+
+  x.fill(0.0);
+  for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
+    x = x+ weights_(i) * Xsig_pred_.col(i);
   }
   //predict state covariance matrix
-  for(int i = 0; i < 2*n_aug_+1; ++i) {
-    VectorXd Xdiff = Xsig_pred_.col(i) - x_;
+  for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
 
-    Xdiff(3) = Tools::angleNormalization(Xdiff(3));
+    // state difference
+    VectorXd x_diff = Xsig_pred_.col(i) - x;
+    //angle normalization
+    x_diff(3) = Tools::angleNormalization(x_diff(3));
 
-    P_ += weights_(i) * Xdiff * Xdiff.transpose();
+    P = P + weights_(i) * x_diff * x_diff.transpose() ;
   }
 
+  x_ = x;
+  P_ = P;
 /*******************************************************************************
  * Student part end
  ******************************************************************************/
@@ -348,21 +360,26 @@ std::tuple<VectorXd*, MatrixXd*, MatrixXd*> UKF::PredictRadarMeasurement() {
     double px = Xsig_pred_(0, i);
     double py = Xsig_pred_(1, i);
     double v = Xsig_pred_(2, i);
-    double phi = Xsig_pred_(3, i);
+    double yaw = Xsig_pred_(3, i);
+    yaw = Tools::angleNormalization(yaw);
 
     double sqrtVal = sqrt(px*px + py*py);
+    double v1 = cos(yaw)*v;
+    double v2 = sin(yaw)*v;
 
     currentPred << sqrtVal,
             atan2(py, px),
-            (px*cos(phi)*v + py*sin(phi)*v) / sqrtVal;
+            (px*v1 + py*v2) / sqrtVal;
 
     (*Zsig).col(i) = currentPred;
   }
   //calculate mean predicted measurement
-  for(int i = 0; i < n_radar; ++i) {
-    (*z_pred)(i) = weights_.dot((*Zsig).row(i));
+  (*z_pred).fill(0.0);
+  for (int i=0; i < 2*n_aug_+1; i++) {
+    *z_pred = *z_pred + weights_(i) * (*Zsig).col(i);
   }
   //calculate measurement covariance matrix S
+  (*S).fill(0.0);
   for(int i = 0; i < 2 * n_aug_ + 1; ++i) {
     VectorXd Zdiff = (*Zsig).col(i) - *z_pred;
 
@@ -371,19 +388,12 @@ std::tuple<VectorXd*, MatrixXd*, MatrixXd*> UKF::PredictRadarMeasurement() {
     *S += weights_(i) * Zdiff * Zdiff.transpose();
   }
 
-  (*S)(0, 0) += std_radr_ * std_radr_;
-  (*S)(1, 1) += std_radphi_ * std_radphi_;
-  (*S)(2, 2) += std_radrd_ * std_radrd_;
+  *S = *S + R_radar;
 
 /*******************************************************************************
  * Student part end
  ******************************************************************************/
 
-  //print result
-  // std::cout << "z_pred: " << std::endl << z_pred << std::endl;
-  // std::cout << "S: " << std::endl << S << std::endl;
-
-  //write result
   return std::make_tuple(z_pred, S, Zsig);
 }
 
@@ -426,6 +436,7 @@ void UKF::UpdateRadarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd 
   x_ = x_ + K * z_diff;
   P_ = P_ - K*S*K.transpose();
 
+  last_radar_NIS = Tools::calculateRadNIS(z_diff, S);
 /*******************************************************************************
  * Student part end
  ******************************************************************************/

@@ -47,19 +47,15 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   return rmse;
 }
 
-double Tools::calculateRadNIS(Eigen::VectorXd z, Eigen::VectorXd z_pred, Eigen::MatrixXd S) {
-  VectorXd Zdiff = z - z_pred;
-
-  while(Zdiff(1) > M_PI) Zdiff(1) -= 2 * M_PI;
-  while(Zdiff(1) < -M_PI) Zdiff(1) += 2 * M_PI;
-
-  return Zdiff.transpose() * S.inverse() * Zdiff;
+double Tools::calculateRadNIS(Eigen::VectorXd z_diff, Eigen::MatrixXd S) {
+  return z_diff.transpose() * S.inverse() * z_diff;
 }
 
 double Tools::angleNormalization(double angle) {
-  while(angle > M_PI) angle -= 2 * M_PI;
-  while(angle < -M_PI) angle += 2 * M_PI;
-
+  if (angle > M_PI)
+    angle = fmod(angle - M_PI, 2*M_PI) - M_PI;
+  if (angle < -M_PI)
+    angle = fmod(angle + M_PI, 2*M_PI) + M_PI;
   return angle;
 }
 

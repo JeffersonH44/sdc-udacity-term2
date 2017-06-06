@@ -1,6 +1,7 @@
 #ifndef TOOLS_H_
 #define TOOLS_H_
 #include <vector>
+#include <cmath>
 #include "Eigen/Dense"
 
 using Eigen::MatrixXd;
@@ -27,7 +28,7 @@ public:
   /**
    * A helper method to calculate NIS
    */
-  static double calculateRadNIS(Eigen::VectorXd z, Eigen::VectorXd z_pred, Eigen::MatrixXd S);
+  static double calculateRadNIS(Eigen::VectorXd z_diff, Eigen::MatrixXd S);
 
   /**
    * Angle normalization

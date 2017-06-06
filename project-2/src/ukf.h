@@ -80,6 +80,9 @@ public:
   double last_radar_NIS;
   double last_lidar_NIS;
 
+  MatrixXd R_radar;
+  MatrixXd R_laser;
+
 
   /**
    * Constructor
