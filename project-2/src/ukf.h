@@ -17,71 +17,71 @@ class UKF {
 public:
 
   ///* initially set to false, set to true in first call of ProcessMeasurement
-  bool is_initialized_;
+  bool isInitialized;
 
   ///* if this is false, laser measurements will be ignored (except for init)
-  bool use_laser_;
+  bool useLaser;
 
   ///* if this is false, radar measurements will be ignored (except for init)
-  bool use_radar_;
+  bool useRadar;
 
   ///* state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
-  VectorXd x_;
+  VectorXd x;
 
   ///* state covariance matrix
-  MatrixXd P_;
+  MatrixXd P;
 
   ///* predicted sigma points matrix
-  MatrixXd Xsig_pred_;
+  MatrixXd XSigPred;
 
   ///* time when the state is true, in us
   long long time_us_;
 
   ///* Process noise standard deviation longitudinal acceleration in m/s^2
-  double std_a_;
+  double stdAcc;
 
   ///* Process noise standard deviation yaw acceleration in rad/s^2
-  double std_yawdd_;
+  double stdYawdd;
 
   ///* Laser measurement noise standard deviation position1 in m
-  double std_laspx_;
+  double stdLasPx;
 
   ///* Laser measurement noise standard deviation position2 in m
-  double std_laspy_;
+  double stdLasPy;
 
   ///* Radar measurement noise standard deviation radius in m
-  double std_radr_;
+  double stdRadR;
 
   ///* Radar measurement noise standard deviation angle in rad
-  double std_radphi_;
+  double stdRadPhi;
 
   ///* Radar measurement noise standard deviation radius change in m/s
-  double std_radrd_ ;
+  double stdRadRd ;
 
   ///* Weights of sigma points
-  VectorXd weights_;
+  VectorXd weights;
 
   ///* State dimension
-  int n_x_;
+  int nx;
 
   ///* Augmented state dimension
-  int n_aug_;
+  int nAug;
 
-  int n_radar;
+  int nRadar;
 
-  int n_lidar;
+  int nLidar;
 
   ///* Sigma point spreading parameter
-  double lambda_;
+  double lambda;
 
   ///* previous timestamp
-  long prev_timestamp_;
+  long prevTimestamp;
 
-  double last_radar_NIS;
-  double last_lidar_NIS;
+  double lastRadarNIS;
+  double lastLidarNIS;
 
-  MatrixXd R_radar;
-  MatrixXd R_laser;
+  MatrixXd RRadar;
+  MatrixXd RLidar;
 
 
   /**
@@ -98,35 +98,35 @@ public:
    * ProcessMeasurement
    * @param meas_package The latest measurement data of either radar or laser
    */
-  void ProcessMeasurement(MeasurementPackage meas_package);
+  void processMeasurement(MeasurementPackage meas_package);
 
   /**
    * Prediction Predicts sigma points, the state, and the state covariance
    * matrix
    * @param delta_t Time between k and k+1 in s
    */
-  void Prediction(double delta_t);
+  void prediction(double delta_t);
 
   /**
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateLidar(MeasurementPackage meas_package);
+  void updateLidar(MeasurementPackage meas_package);
 
   /**
    * Updates the state and the state covariance matrix using a radar measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateRadar(MeasurementPackage meas_package);
+  void updateRadar(MeasurementPackage meas_package);
 
-  MatrixXd AugmentedSigmaPoints();
-  void SigmaPointPrediction(MatrixXd Xsig_aug, double delta_t);
-  void PredictMeanAndCovariance();
-  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> PredictRadarMeasurement();
-  void UpdateRadarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
+  MatrixXd augmentedSigmaPoints();
+  void sigmaPointPrediction(MatrixXd Xsig_aug, double delta_t);
+  void predictMeanAndCovariance();
+  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> predictRadarMeasurement();
+  void updateRadarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
 
-  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> PredictLidarMeasurement();
-  void UpdateLidarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
+  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> predictLidarMeasurement();
+  void updateLidarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
 };
 
 #endif /* UKF_H */
