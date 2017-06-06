@@ -27,7 +27,12 @@ public:
   /**
    * A helper method to calculate NIS
    */
-  double calculateRadNIS(Eigen::VectorXd z, Eigen::VectorXd z_pred, Eigen::MatrixXd S);
+  static double calculateRadNIS(Eigen::VectorXd z, Eigen::VectorXd z_pred, Eigen::MatrixXd S);
+
+  /**
+   * Angle normalization
+   */
+  static double angleNormalization(double angle);
 };
 
 #endif /* TOOLS_H_ */

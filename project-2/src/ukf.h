@@ -2,6 +2,7 @@
 #define UKF_H
 
 #include "measurement_package.h"
+#include "tools.h"
 #include "Eigen/Dense"
 #include <vector>
 #include <string>
@@ -75,6 +76,9 @@ public:
 
   ///* previous timestamp
   long prev_timestamp_;
+
+  double last_radar_NIS;
+  double last_lidar_NIS;
 
 
   /**

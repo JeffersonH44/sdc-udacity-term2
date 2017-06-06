@@ -56,3 +56,10 @@ double Tools::calculateRadNIS(Eigen::VectorXd z, Eigen::VectorXd z_pred, Eigen::
   return Zdiff.transpose() * S.inverse() * Zdiff;
 }
 
+double Tools::angleNormalization(double angle) {
+  while(angle > M_PI) angle -= 2 * M_PI;
+  while(angle < -M_PI) angle += 2 * M_PI;
+
+  return angle;
+}
+
