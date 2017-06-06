@@ -27,37 +27,34 @@ public:
 
   /**
    * ProcessMeasurement
-   * @param meas_package The latest measurement data of either radar or laser
+   * @param measurementPackage The latest measurement data of either radar or laser
    */
-  void processMeasurement(MeasurementPackage meas_package);
+  void processMeasurement(MeasurementPackage measurementPackage);
 
   /**
    * Prediction Predicts sigma points, the state, and the state covariance
    * matrix
-   * @param delta_t Time between k and k+1 in s
+   * @param deltaT Time between k and k+1 in s
    */
-  void prediction(double delta_t);
+  void prediction(double deltaT);
 
   /**
    * Updates the state and the state covariance matrix using a laser measurement
-   * @param meas_package The measurement at k+1
+   * @param measurementPackage The measurement at k+1
    */
-  void updateLidar(MeasurementPackage meas_package);
+  void updateLidar(MeasurementPackage measurementPackage);
 
   /**
    * Updates the state and the state covariance matrix using a radar measurement
-   * @param meas_package The measurement at k+1
+   * @param measurementPackage The measurement at k+1
    */
-  void updateRadar(MeasurementPackage meas_package);
+  void updateRadar(MeasurementPackage measurementPackage);
 
   MatrixXd augmentedSigmaPoints();
-  void sigmaPointPrediction(MatrixXd Xsig_aug, double delta_t);
+  void sigmaPointPrediction(MatrixXd XSigmaAug, double deltaT);
   void predictMeanAndCovariance();
-  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> predictRadarMeasurement();
-  void updateRadarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
-
-  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> predictLidarMeasurement();
-  void updateLidarState(MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
+  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> predictMeasurement(bool isRadar);
+  void updateState(MatrixXd ZSigmaPoints, VectorXd zPred, MatrixXd S, VectorXd z, bool isRadar);
 
   const double &getX(int i) const;
 private:
