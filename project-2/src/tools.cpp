@@ -9,7 +9,7 @@ Tools::Tools() {}
 
 Tools::~Tools() {}
 
-VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
+VectorXd Tools::calculateRMSE(const vector<VectorXd> &estimations,
                               const vector<VectorXd> &ground_truth) {
   /**
   TODO:
@@ -47,8 +47,8 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   return rmse;
 }
 
-double Tools::calculateNIS(Eigen::VectorXd z_diff, Eigen::MatrixXd S) {
-  return z_diff.transpose() * S.inverse() * z_diff;
+double Tools::calculateNIS(Eigen::VectorXd zDiff, Eigen::MatrixXd S) {
+  return zDiff.transpose() * S.inverse() * zDiff;
 }
 
 double Tools::angleNormalization(double angle) {

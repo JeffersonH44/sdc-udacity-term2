@@ -42,13 +42,7 @@ public:
    * Updates the state and the state covariance matrix using a laser measurement
    * @param measurementPackage The measurement at k+1
    */
-  void updateLidar(MeasurementPackage measurementPackage);
-
-  /**
-   * Updates the state and the state covariance matrix using a radar measurement
-   * @param measurementPackage The measurement at k+1
-   */
-  void updateRadar(MeasurementPackage measurementPackage);
+  void update(MeasurementPackage measurementPackage, bool isRadar);
 
   MatrixXd augmentedSigmaPoints();
   void sigmaPointPrediction(MatrixXd XSigmaAug, double deltaT);

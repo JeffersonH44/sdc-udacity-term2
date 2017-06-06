@@ -49,17 +49,11 @@ UKF::UKF() {
   // Radar measurement noise standard deviation radius change in m/s
   stdRadRd = 0.3;
 
+  // variables for radar (rho, phi, rho dot)
   nRadar = 3;
-
+  // variables for lidar (px, py)
   nLidar = 2;
 
-  /**
-  TODO:
-
-  Complete the initialization. See ukf.h for other member properties.
-
-  Hint: one or more values initialized above might be wildly off...
-  */
   // spreading parameter
   lambda = 3 - nAug;
 
@@ -98,26 +92,24 @@ void UKF::processMeasurement(MeasurementPackage measurementPackage) {
   */
 
   if(isInitialized) {
-    double dt = (measurementPackage.timestamp_ - prevTimestamp) / 1000000.0;
-    this->prediction(dt);
-    if(useLaser && measurementPackage.sensor_type_ == MeasurementPackage::SensorType::LASER) {
-      this->updateLidar(measurementPackage);
-    }
-    if(useRadar && measurementPackage.sensor_type_ == MeasurementPackage::SensorType::RADAR) {
-      this->updateRadar(measurementPackage);
-    }
-    prevTimestamp = measurementPackage.timestamp_;
-  } else {
+    bool isRadar = measurementPackage.sensor_type == MeasurementPackage::SensorType::RADAR;
+    bool makeUpdate = isRadar ? useRadar : useLaser;
 
-    prevTimestamp = measurementPackage.timestamp_;
-    if(measurementPackage.sensor_type_ == MeasurementPackage::SensorType::LASER) {
-      double px = measurementPackage.raw_measurements_[0];
-      double py = measurementPackage.raw_measurements_[1];
+    if(makeUpdate) {
+      double dt = (measurementPackage.timestamp - prevTimestamp) / 1000000.0;
+      this->prediction(dt);
+      this->update(measurementPackage, isRadar);
+      prevTimestamp = measurementPackage.timestamp;
+    }
+  } else {
+    prevTimestamp = measurementPackage.timestamp;
+    if(measurementPackage.sensor_type == MeasurementPackage::SensorType::LASER) {
+      double px = measurementPackage.raw_measurements[0];
+      double py = measurementPackage.raw_measurements[1];
       x << px, py, 0.0, 0.0, 0.0;
     } else {
-      double rho = measurementPackage.raw_measurements_[0];
-      double phi = measurementPackage.raw_measurements_[1];
-      // double rhoDot = measurementPackage.raw_measurements_[2];
+      double rho = measurementPackage.raw_measurements[0];
+      double phi = measurementPackage.raw_measurements[1];
       x << rho * cos(phi), rho * sin(phi), 0.0, 0.0, 0.0;
     }
 
@@ -153,7 +145,7 @@ void UKF::prediction(double deltaT) {
  * Updates the state and the state covariance matrix using a laser measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::updateLidar(MeasurementPackage measurementPackage) {
+void UKF::update(MeasurementPackage measurementPackage, bool isRadar) {
   /**
   TODO:
 
@@ -162,7 +154,7 @@ void UKF::updateLidar(MeasurementPackage measurementPackage) {
 
   You'll also need to calculate the lidar NIS.
   */
-  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> tup = this->predictMeasurement(false);
+  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> tup = this->predictMeasurement(isRadar);
 
   VectorXd *zPred = std::get<0>(tup);
   MatrixXd *S = std::get<1>(tup);
@@ -171,36 +163,7 @@ void UKF::updateLidar(MeasurementPackage measurementPackage) {
   /*std::cout << *zPred << std::endl;
   std::cout << *S << std::endl;
   std::cout << *ZSigmaPoints << std::endl;*/
-  this->updateState(*ZSigmaPoints, *zPred, *S, measurementPackage.raw_measurements_, false);
-
-  delete(zPred);
-  delete(S);
-  delete(ZSigmaPoints);
-}
-
-/**
- * Updates the state and the state covariance matrix using a radar measurement.
- * @param {MeasurementPackage} meas_package
- */
-void UKF::updateRadar(MeasurementPackage measurementPackage) {
-  /**
-  TODO:
-
-  Complete this function! Use radar data to update the belief about the object's
-  position. Modify the state vector, x_, and covariance, P_.
-
-  You'll also need to calculate the radar NIS.
-  */
-  std::tuple<VectorXd*, MatrixXd*, MatrixXd*> tup = this->predictMeasurement(true);
-
-  VectorXd *zPred = std::get<0>(tup);
-  MatrixXd *S = std::get<1>(tup);
-  MatrixXd *ZSigmaPoints = std::get<2>(tup);
-
-  /*std::cout << *zPred << std::endl;
-  std::cout << *S << std::endl;
-  std::cout << *ZSigmaPoints << std::endl;*/
-  this->updateState(*ZSigmaPoints, *zPred, *S, measurementPackage.raw_measurements_, true);
+  this->updateState(*ZSigmaPoints, *zPred, *S, measurementPackage.raw_measurements, isRadar);
 
   delete(zPred);
   delete(S);
@@ -354,16 +317,16 @@ void UKF::predictMeanAndCovariance() {
 
 std::tuple<VectorXd*, MatrixXd*, MatrixXd*> UKF::predictMeasurement(bool isRadar) {
 
-  int variables = isRadar ? nRadar : nLidar;
+  int n = isRadar ? nRadar : nLidar;
 
   //create matrix for sigma points in measurement space
-  MatrixXd *ZSigmaPoints = new MatrixXd(variables, 2 * nAug + 1);
+  MatrixXd *ZSigmaPoints = new MatrixXd(n, 2 * nAug + 1);
 
   //mean predicted measurement
-  VectorXd *zPred = new VectorXd(variables);
+  VectorXd *zPred = new VectorXd(n);
 
   //measurement covariance matrix S
-  MatrixXd *S = new MatrixXd(variables, variables);
+  MatrixXd *S = new MatrixXd(n, n);
 
 /*******************************************************************************
  * Student part begin
@@ -372,7 +335,7 @@ std::tuple<VectorXd*, MatrixXd*, MatrixXd*> UKF::predictMeasurement(bool isRadar
   //transform sigma points into measurement space
   if(isRadar) {
     for(int i = 0; i < 2 * nAug + 1; ++i) {
-      VectorXd currentPred = VectorXd(variables);
+      VectorXd currentPred = VectorXd(n);
       double px = XSigPred(0, i);
       double py = XSigPred(1, i);
       double v = XSigPred(2, i);
@@ -391,7 +354,7 @@ std::tuple<VectorXd*, MatrixXd*, MatrixXd*> UKF::predictMeasurement(bool isRadar
     }
   } else {
     for(int i = 0; i < 2 * nAug + 1; ++i) {
-      VectorXd currentPred = VectorXd(variables);
+      VectorXd currentPred = VectorXd(n);
       double px = XSigPred(0, i);
       double py = XSigPred(1, i);
 
@@ -429,10 +392,10 @@ std::tuple<VectorXd*, MatrixXd*, MatrixXd*> UKF::predictMeasurement(bool isRadar
 
 void UKF::updateState(MatrixXd ZSigmaPoints, VectorXd zPred, MatrixXd S, VectorXd z, bool isRadar) {
 
-  int variables = isRadar ? nRadar : nLidar;
+  int n = isRadar ? nRadar : nLidar;
 
   //create matrix for cross correlation Tc
-  MatrixXd Tc = MatrixXd(nx, variables);
+  MatrixXd Tc = MatrixXd(nx, n);
 
 /*******************************************************************************
  * Student part begin

@@ -34,11 +34,10 @@ int main()
   UKF ukf;
 
   // used to compute the RMSE later
-  Tools tools;
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
 
-  h.onMessage([&ukf,&tools,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&ukf,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -68,28 +67,28 @@ int main()
 
     	  if (sensor_type.compare("L") == 0) {
               cout << "lidar" << endl;
-      	  		meas_package.sensor_type_ = MeasurementPackage::LASER;
-          		meas_package.raw_measurements_ = VectorXd(2);
+      	  		meas_package.sensor_type = MeasurementPackage::LASER;
+          		meas_package.raw_measurements = VectorXd(2);
           		float px;
       	  		float py;
           		iss >> px;
           		iss >> py;
-          		meas_package.raw_measurements_ << px, py;
+          		meas_package.raw_measurements << px, py;
           		iss >> timestamp;
-          		meas_package.timestamp_ = timestamp;
+          		meas_package.timestamp = timestamp;
           } else if (sensor_type.compare("R") == 0) {
               cout << "radar" << endl;
-      	  		meas_package.sensor_type_ = MeasurementPackage::RADAR;
-          		meas_package.raw_measurements_ = VectorXd(3);
+      	  		meas_package.sensor_type = MeasurementPackage::RADAR;
+          		meas_package.raw_measurements = VectorXd(3);
           		float ro;
       	  		float theta;
       	  		float ro_dot;
           		iss >> ro;
           		iss >> theta;
           		iss >> ro_dot;
-          		meas_package.raw_measurements_ << ro,theta, ro_dot;
+          		meas_package.raw_measurements << ro,theta, ro_dot;
           		iss >> timestamp;
-          		meas_package.timestamp_ = timestamp;
+          		meas_package.timestamp = timestamp;
           }
           float x_gt;
     	  float y_gt;
@@ -128,7 +127,7 @@ int main()
     	  
     	  estimations.push_back(estimate);
 
-    	  VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
+    	  VectorXd RMSE = Tools::calculateRMSE(estimations, ground_truth);
 
           json msgJson;
           msgJson["estimate_x"] = p_x;

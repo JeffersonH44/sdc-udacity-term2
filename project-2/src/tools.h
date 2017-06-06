@@ -23,12 +23,12 @@ public:
   /**
   * A helper method to calculate RMSE.
   */
-  VectorXd CalculateRMSE(const vector<VectorXd> &estimations, const vector<VectorXd> &ground_truth);
+  static VectorXd calculateRMSE(const vector<VectorXd> &estimations, const vector<VectorXd> &ground_truth);
 
   /**
    * A helper method to calculate NIS
    */
-  static double calculateNIS(Eigen::VectorXd z_diff, Eigen::MatrixXd S);
+  static double calculateNIS(Eigen::VectorXd zDiff, Eigen::MatrixXd S);
 
   /**
    * Angle normalization
