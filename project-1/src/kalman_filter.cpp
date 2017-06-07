@@ -7,40 +7,40 @@ KalmanFilter::KalmanFilter() {}
 
 KalmanFilter::~KalmanFilter() {}
 
-void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
-                        MatrixXd &H_in, MatrixXd &R_in, MatrixXd &Q_in) {
-  x_ = x_in;
-  P_ = P_in;
-  F_ = F_in;
-  H_ = H_in;
-  R_ = R_in;
-  Q_ = Q_in;
+void KalmanFilter::Init(VectorXd &x, MatrixXd &P, MatrixXd &F,
+                        MatrixXd &H, MatrixXd &R, MatrixXd &Q) {
+  this->x = x;
+  this->P = P;
+  this->F = F;
+  this->H = H;
+  this->R = R;
+  this->Q = Q;
 }
 
 void KalmanFilter::Predict() {
-  x_ = F_ * x_;
-  MatrixXd Ft = F_.transpose();
-  P_ = F_ * P_ * Ft + Q_;
+  x = F * x;
+  MatrixXd Ft = F.transpose();
+  P = F * P * Ft + Q;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
-  VectorXd z_pred = H_ * x_;
-  VectorXd y = z - z_pred;
-  MatrixXd Ht = H_.transpose();
-  MatrixXd S = H_ * P_ * Ht + R_;
+  VectorXd zPred = H * x;
+  VectorXd y = z - zPred;
+  MatrixXd Ht = H.transpose();
+  MatrixXd S = H * P * Ht + R;
   MatrixXd Si = S.inverse();
-  MatrixXd PHt = P_ * Ht;
+  MatrixXd PHt = P * Ht;
   MatrixXd K = PHt * Si;
 
   //new estimate
-  x_ = x_ + (K * y);
-  long x_size = x_.size();
-  MatrixXd I = MatrixXd::Identity(x_size, x_size);
-  P_ = (I - K * H_) * P_;
+  x = x + (K * y);
+  long xSize = x.size();
+  MatrixXd I = MatrixXd::Identity(xSize, xSize);
+  P = (I - K * H) * P;
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
-  VectorXd y = z - this->transformRadarPred(x_);
+  VectorXd y = z - this->transformRadarPred(x);
   while (y(1) > M_PI) {
     y(1) -= 2 * M_PI;
   }
@@ -48,36 +48,36 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
     y(1) += 2 * M_PI;
   }
 
-  MatrixXd Ht = H_.transpose();
-  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd Ht = H.transpose();
+  MatrixXd S = H * P * Ht + R;
   MatrixXd Si = S.inverse();
-  MatrixXd PHt = P_ * Ht;
+  MatrixXd PHt = P * Ht;
   MatrixXd K = PHt * Si;
 
   //new estimate
-  x_ = x_ + (K * y);
-  long x_size = x_.size();
-  MatrixXd I = MatrixXd::Identity(x_size, x_size);
-  P_ = (I - K * H_) * P_;
+  x = x + (K * y);
+  long xSize = x.size();
+  MatrixXd I = MatrixXd::Identity(xSize, xSize);
+  P = (I - K * H) * P;
 }
 
 Eigen::VectorXd KalmanFilter::transformRadarPred(const Eigen::VectorXd &x) {
-  VectorXd h_pred(3);
+  VectorXd hPred(3);
   double px = x(0);
   double py = x(1);
   double vx = x(2);
   double vy = x(3);
-  h_pred(0) = sqrt(px*px + py*py);
+  hPred(0) = sqrt(px*px + py*py);
 
   if(fabs(px) > 0.0001){
-    h_pred(1) = atan2(py, px);
+    hPred(1) = atan2(py, px);
   }
 
-  if(fabs(h_pred(0)) < 0.01) {
-    h_pred(2) = 0.0;
+  if(fabs(hPred(0)) < 0.01) {
+    hPred(2) = 0.0;
   } else {
-    h_pred(2) = (px*vx + py*vy) / h_pred(0);
+    hPred(2) = (px*vx + py*vy) / hPred(0);
   }
 
-  return h_pred;
+  return hPred;
 }

@@ -37,11 +37,10 @@ int main()
   FusionEKF fusionEKF;
 
   // used to compute the RMSE later
-  Tools tools;
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
 
-  h.onMessage([&fusionEKF,&tools,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&fusionEKF,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
       // "42" at the start of the message means there's a websocket message event.
       // The 4 signifies a websocket message
       // The 2 signifies a websocket event
@@ -70,28 +69,28 @@ int main()
             iss >> sensor_type;
 
             if (sensor_type.compare("L") == 0) {
-              meas_package.sensor_type_ = MeasurementPackage::LASER;
-              meas_package.raw_measurements_ = VectorXd(2);
+              meas_package.sensorType = MeasurementPackage::LASER;
+              meas_package.rawMeasurements = VectorXd(2);
               float px;
               float py;
               iss >> px;
               iss >> py;
-              meas_package.raw_measurements_ << px, py;
+              meas_package.rawMeasurements << px, py;
               iss >> timestamp;
-              meas_package.timestamp_ = timestamp;
+              meas_package.timestamp = timestamp;
             } else if (sensor_type.compare("R") == 0) {
 
-              meas_package.sensor_type_ = MeasurementPackage::RADAR;
-              meas_package.raw_measurements_ = VectorXd(3);
+              meas_package.sensorType = MeasurementPackage::RADAR;
+              meas_package.rawMeasurements = VectorXd(3);
               float ro;
               float theta;
               float ro_dot;
               iss >> ro;
               iss >> theta;
               iss >> ro_dot;
-              meas_package.raw_measurements_ << ro,theta, ro_dot;
+              meas_package.rawMeasurements << ro,theta, ro_dot;
               iss >> timestamp;
-              meas_package.timestamp_ = timestamp;
+              meas_package.timestamp = timestamp;
             }
             float x_gt;
             float y_gt;
@@ -115,10 +114,10 @@ int main()
 
             VectorXd estimate(4);
 
-            double p_x = fusionEKF.ekf_.x_(0);
-            double p_y = fusionEKF.ekf_.x_(1);
-            double v1  = fusionEKF.ekf_.x_(2);
-            double v2 = fusionEKF.ekf_.x_(3);
+            double p_x = fusionEKF.ekf.x(0);
+            double p_y = fusionEKF.ekf.x(1);
+            double v1  = fusionEKF.ekf.x(2);
+            double v2 = fusionEKF.ekf.x(3);
 
             estimate(0) = p_x;
             estimate(1) = p_y;
@@ -127,7 +126,7 @@ int main()
 
             estimations.push_back(estimate);
 
-            VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
+            VectorXd RMSE = Tools::calculateRMSE(estimations, ground_truth);
 
             json msgJson;
             msgJson["estimate_x"] = p_x;

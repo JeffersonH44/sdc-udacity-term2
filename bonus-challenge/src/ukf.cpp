@@ -67,12 +67,12 @@ UKF::UKF() {
 
   RLidar = MatrixXd(nLidar, nLidar);
   RLidar << stdLasPx * stdLasPx, 0,
-             0, stdLasPy * stdLasPy;
+          0, stdLasPy * stdLasPy;
 
   RRadar = MatrixXd(nRadar, nRadar);
   RRadar << stdRadR * stdRadR, 0, 0,
-             0, stdRadPhi * stdRadPhi, 0,
-             0, 0, stdRadRd * stdRadRd;
+          0, stdRadPhi * stdRadPhi, 0,
+          0, 0, stdRadRd * stdRadRd;
 
   isInitialized = false;
 }
@@ -115,10 +115,10 @@ void UKF::processMeasurement(MeasurementPackage measurementPackage) {
 
     // TODO: do not forget to change those values
     P << 1, 0, 0, 0, 0,
-          0, 1, 0, 0, 0,
-          0, 0, 1, 0, 0,
-          0, 0, 0, 1, 0,
-          0, 0, 0, 0, 1;
+            0, 1, 0, 0, 0,
+            0, 0, 1, 0, 0,
+            0, 0, 0, 1, 0,
+            0, 0, 0, 0, 1;
 
     isInitialized = true;
   }
