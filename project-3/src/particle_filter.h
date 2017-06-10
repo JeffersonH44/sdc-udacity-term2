@@ -10,6 +10,7 @@
 #define PARTICLE_FILTER_H_
 
 #include "helper_functions.h"
+#include <random>
 
 struct Particle {
 
@@ -26,17 +27,19 @@ struct Particle {
 
 
 class ParticleFilter {
-	
+
+
 	// Number of particles to draw
-	int num_particles; 
-	
-	
+	int num_particles;
 	
 	// Flag, if filter is initialized
 	bool is_initialized;
 	
 	// Vector of weights of all particles
 	std::vector<double> weights;
+
+  // engine for all random generators
+  std::default_random_engine eng;
 	
 public:
 	
@@ -114,6 +117,8 @@ public:
 	const bool initialized() const {
 		return is_initialized;
 	}
+
+  Particle move(Particle p, double delta_t, std::normal_distribution<double> stds[], double velocity, double yaw_rate);
 };
 
 

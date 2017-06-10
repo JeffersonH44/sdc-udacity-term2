@@ -13,6 +13,7 @@
 #include <math.h>
 #include <vector>
 #include "map.h"
+#include "particle_filter.h"
 
 /*
  * Struct representing one position/control measurement.
@@ -51,6 +52,14 @@ struct LandmarkObs {
  */
 inline double dist(double x1, double y1, double x2, double y2) {
 	return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
+
+inline double multivariateGaussianProb(double x, double y, double meanX, double meanY, double stdX, double stdY) {
+  double varX = stdX * stdX;
+  double varY = stdY * stdY;
+  double diffSqX = (x - meanX) * (x - meanX);
+  double diffSqY = (y - meanY) * (y - meanY);
+  return (1/(2 * M_PI * stdX * stdY)) * exp(-( (diffSqX/(2 * varX)) + (diffSqY/(2 * varY)) ));
 }
 
 inline double * getError(double gt_x, double gt_y, double gt_theta, double pf_x, double pf_y, double pf_theta) {
