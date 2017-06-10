@@ -163,8 +163,8 @@ void ParticleFilter::resample() {
   double beta = 0.0;
   for(int i = 0; i < this->num_particles; ++i) {
     beta += getReal(eng);
-    while(beta > weights[index]) {
-      beta -= weights[index];
+    while(beta > this->particles[index].weight) {
+      beta -= this->particles[index].weight;
       index = (index + 1) % this->num_particles;
     }
 
