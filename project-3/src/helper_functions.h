@@ -16,6 +16,17 @@
 #include "particle_filter.h"
 
 /*
+ * Computes the Euclidean distance between two 2D points.
+ * @param (x1,y1) x and y coordinates of first point
+ * @param (x2,y2) x and y coordinates of second point
+ * @output Euclidean distance between two 2D points
+ */
+inline double dist(double x1, double y1, double x2, double y2) {
+  // TODO: no sqrt needed?
+  return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+}
+
+/*
  * Struct representing one position/control measurement.
  */
 struct control_s {
@@ -40,19 +51,43 @@ struct ground_truth {
 struct LandmarkObs {
 	
 	int id;				// Id of matching landmark in the map.
-	double x;			// Local (vehicle coordinates) x position of landmark observation [m]
-	double y;			// Local (vehicle coordinates) y position of landmark observation [m]
-};
+	double dim[2];			// Local (vehicle coordinates) x, y position of landmark observation [m]
 
-/*
- * Computes the Euclidean distance between two 2D points.
- * @param (x1,y1) x and y coordinates of first point
- * @param (x2,y2) x and y coordinates of second point
- * @output Euclidean distance between two 2D points
- */
-inline double dist(double x1, double y1, double x2, double y2) {
-	return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
-}
+  LandmarkObs() {
+    id = -1;
+    dim[0] = 0.0;
+    dim[1] = 0.0;
+  }
+
+  LandmarkObs(int id_, double x_, double y_) {
+    id = id_;
+    dim[0] = x_;
+    dim[1] = y_;
+  }
+
+  double distance_to(LandmarkObs const& other) const
+  {
+    return dist(dim[0], dim[1], other.dim[0], other.dim[1]);
+  }
+
+  void setX(double val) {
+    dim[0] = val;
+  }
+
+  double getX() {
+    return dim[0];
+  }
+
+  void setY(double val) {
+    dim[1] = val;
+  }
+
+  double getY() {
+    return dim[1];
+  }
+
+  inline double operator[](size_t const N) const { return dim[N]; }
+};
 
 inline double multivariateGaussianProb(double x, double y, double meanX, double meanY, double stdX, double stdY) {
   double varX = stdX * stdX;
@@ -236,8 +271,8 @@ inline bool read_landmark_data(std::string filename, std::vector<LandmarkObs>& o
 		LandmarkObs meas;
 
 		// Set values
-		meas.x = local_x;
-		meas.y = local_y;
+		meas.setX(local_x);
+		meas.setY(local_y);
 
 		// Add to list of control measurements:
 		observations.push_back(meas);

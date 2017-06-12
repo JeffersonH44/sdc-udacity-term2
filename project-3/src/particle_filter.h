@@ -10,7 +10,17 @@
 #define PARTICLE_FILTER_H_
 
 #include "helper_functions.h"
+#include "kdtree.hpp"
 #include <random>
+#include <set>
+
+struct alternate_tac
+{
+    typedef double result_type;
+    double operator()( LandmarkObs const& t, size_t k ) const { return t[k]; }
+};
+
+typedef KDTree::KDTree<2, LandmarkObs, alternate_tac> StdKDTree;
 
 struct Particle {
 
@@ -40,7 +50,8 @@ class ParticleFilter {
 
   // engine for all random generators
   std::default_random_engine eng;
-	
+
+  StdKDTree mapSearch;
 public:
 	
 	// Set of current particles
@@ -62,7 +73,7 @@ public:
 	 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
 	 *   standard deviation of yaw [rad]]
 	 */
-	void init(double x, double y, double theta, double std[]);
+	void init(double x, double y, double theta, double std[], Map map_landmarks);
 
 	/**
 	 * prediction Predicts the state for the next time step

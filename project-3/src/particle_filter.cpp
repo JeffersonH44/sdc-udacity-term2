@@ -13,18 +13,28 @@
 #include <sstream>
 #include <string>
 #include <iterator>
+#include <omp.h>
 
 #include "particle_filter.h"
 
 using namespace std;
 
-void ParticleFilter::init(double x, double y, double theta, double std[]) {
+void ParticleFilter::init(double x, double y, double theta, double std[], Map map_landmarks) {
 	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
-	this->num_particles = 1000;
+	this->num_particles = 1250;
 	this->particles.resize(this->num_particles);
+
+  auto landmarks = map_landmarks.landmark_list;
+  for (int i = 0; i < landmarks.size(); ++i) {
+    auto mapLandmark = landmarks[i];
+    LandmarkObs current(mapLandmark.id_i, mapLandmark.x_f, mapLandmark.y_f);
+    this->mapSearch.insert(current);
+  }
+
+  this->mapSearch.optimize();
 
   normal_distribution<double> x_gen(x, std[0]);
   normal_distribution<double> y_gen(y, std[1]);
@@ -37,6 +47,10 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     p.y = y_gen(eng);
     p.theta = theta_gen(eng);
     p.weight = 1;
+
+    p.associations.clear();
+    p.sense_x.clear();
+    p.sense_y.clear();
 
     this->particles[i] = p;
   }
@@ -64,24 +78,6 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
-
-
-  for(int i = 0; i < observations.size(); ++i) {
-    LandmarkObs currentObs = observations[i];
-    double bestDist = numeric_limits<double>::max();
-    int bestId = observations[0].id;
-    for(int j = 0; j < predicted.size(); ++j) {
-      LandmarkObs currentPred = predicted[j];
-      double dis = dist(currentObs.x, currentObs.y, currentObs.x, currentObs.y);
-
-      if(dis < bestDist) {
-        bestDist = dis;
-        bestId = currentPred.id;
-      }
-    }
-
-    currentObs.id = bestId;
-  }
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -96,49 +92,55 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+
+  double stdX = std_landmark[0];
+  double stdY = std_landmark[1];
+  auto mapLandmarks = map_landmarks.landmark_list;
+
   for(int i = 0; i < this->num_particles; ++i) {
-    Particle currentParticle = this->particles[i];
-    vector<LandmarkObs> predictions;
-    for(int j = 0; j < map_landmarks.landmark_list.size(); ++j) {
-      float x = map_landmarks.landmark_list[j].x_f;
-      float y = map_landmarks.landmark_list[j].y_f;
-      int id = map_landmarks.landmark_list[j].id_i;
+    double particleX = this->particles[i].x;
+    double particleY = this->particles[i].y;
+    double particleTheta = this->particles[i].theta;
 
-      if(fabs(x - currentParticle.x) < sensor_range && fabs(y - currentParticle.y) < sensor_range) {
-        predictions.push_back(LandmarkObs{id, x, y});
-      }
+    vector<LandmarkObs> predictionsPart(observations.size());
+
+    for (int j = 0; j < observations.size(); ++j) {
+      auto currentObs = observations[j];
+      double x = (cos(particleTheta) * currentObs.getX()) - (sin(particleTheta) * currentObs.getY()) + particleX;
+      double y = (sin(particleTheta) * currentObs.getX()) + (cos(particleTheta) * currentObs.getY()) + particleY;
+
+      predictionsPart[j] = LandmarkObs(currentObs.id, x, y);
     }
 
-    vector<LandmarkObs> transformedObs;
-    for(int  j = 0; j < observations.size(); ++j) {
-      LandmarkObs observation = observations[j];
-      // TODO: be careful with the theta value
-      double x = cos(currentParticle.theta) * observation.x - sin(currentParticle.theta) * observation.y;
-      double y = sin(currentParticle.theta) * observation.x + cos(currentParticle.theta) * observation.y;
-      transformedObs.push_back(LandmarkObs{observation.id, x, y});
-    }
+    double weight = 1.0;
 
-    dataAssociation(predictions, transformedObs);
+    for (int j = 0; j < predictionsPart.size(); ++j) {
+      double predX = predictionsPart[j].getX();
+      double predY = predictionsPart[j].getY();
 
-    currentParticle.weight = 1.0; // because we are multiplying all prob
 
-    for(int j = 0; j < transformedObs.size(); ++j) {
-      double obsX = transformedObs[j].x;
-      double obsY = transformedObs[j].y;
-      double predX, predY;
-      int associatedPrediction = transformedObs[j].id;
-      for(int k = 0; k < predictions.size(); ++k) {
-        if(predictions[k].id == associatedPrediction) {
-          predX = predictions[k].x;
-          predY = predictions[k].y;
+      std::pair<StdKDTree::const_iterator, double> found = this->mapSearch.find_nearest(predictionsPart[j]);
+      LandmarkObs nearest = *found.first;
+      double closestMarkX = nearest.getX(), closestMarkY = nearest.getY();
+      /*for (int k = 0; k < mapLandmarks.size(); ++k) {
+        double landX = mapLandmarks[k].x_f;
+        double landY = mapLandmarks[k].y_f;
+
+        double currentDist = dist(predX, predY, landX, landY);
+        if(currentDist < minDist) {
+          minDist = currentDist;
+          closestMarkX = landX;
+          closestMarkY = landY;
         }
+      }*/
+
+      double currentWeight = multivariateGaussianProb(predX, predY, closestMarkX, closestMarkY, stdX, stdY);
+      if(currentWeight > 0.0) {
+        weight *= currentWeight;
       }
-
-      double sx = std_landmark[0];
-      double sy = std_landmark[1];
-
-      currentParticle.weight *= multivariateGaussianProb(obsX, obsY, predX, predY, sx, sy);
     }
+
+    this->particles[i].weight = weight;
   }
 }
 
@@ -155,8 +157,7 @@ void ParticleFilter::resample() {
   vector<Particle> resampledParticles(this->particles.size());
   double maxWeight = (*max_element(this->particles.begin(), this->particles.end(), myobj)).weight;
 
-  uniform_int_distribution<int> intGenerator(0, this->num_particles - 1);
-  int index = intGenerator(eng);
+  int index = 0;
 
   uniform_real_distribution<double> getReal(0, 2.0 * maxWeight);
 
@@ -222,17 +223,18 @@ string ParticleFilter::getSenseY(Particle best)
 }
 
 Particle ParticleFilter::move(Particle p, double delta_t, normal_distribution<double> stds[], double velocity, double yaw_rate) {
-  if(yaw_rate < 0.0001) {
-    p.x += velocity * sin(p.theta) * delta_t;
-    p.y += velocity * cos(p.theta) * delta_t;
+  if(yaw_rate < 1e-9) {
+    p.x += velocity * cos(p.theta) * delta_t;
+    p.y += velocity * sin(p.theta) * delta_t;
   } else {
     p.x += (velocity / yaw_rate) * (sin(p.theta + yaw_rate * delta_t) - sin(p.theta));
     p.y += (velocity / yaw_rate) * (cos(p.theta) - cos(p.theta + yaw_rate * delta_t));
-    p.theta += yaw_rate * delta_t + stds[2](eng);
+    p.theta += (yaw_rate * delta_t);
   }
 
   p.x += stds[0](eng);
   p.y += stds[1](eng);
+  p.theta += stds[2](eng);
 
   return p;
 }

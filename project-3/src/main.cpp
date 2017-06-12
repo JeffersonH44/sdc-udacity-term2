@@ -72,7 +72,7 @@ int main()
 			double sense_y = std::stod(j[1]["sense_y"].get<std::string>());
 			double sense_theta = std::stod(j[1]["sense_theta"].get<std::string>());
 
-			pf.init(sense_x, sense_y, sense_theta, sigma_pos);
+			pf.init(sense_x, sense_y, sense_theta, sigma_pos, map);
 		  }
 		  else {
 			// Predict the vehicle's next state from previous (noiseless control) data.
@@ -105,8 +105,8 @@ int main()
         	for(int i = 0; i < x_sense.size(); i++)
         	{
         		LandmarkObs obs;
-        		obs.x = x_sense[i];
-				obs.y = y_sense[i];
+        		obs.setX(x_sense[i]);
+				obs.setY(y_sense[i]);
 				noisy_observations.push_back(obs);
         	}
 
