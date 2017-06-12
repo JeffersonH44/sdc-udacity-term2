@@ -13,7 +13,6 @@
 #include <sstream>
 #include <string>
 #include <iterator>
-#include <omp.h>
 
 #include "particle_filter.h"
 
@@ -26,15 +25,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[], Map ma
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 	this->num_particles = 1250;
 	this->particles.resize(this->num_particles);
-
-  auto landmarks = map_landmarks.landmark_list;
-  for (int i = 0; i < landmarks.size(); ++i) {
-    auto mapLandmark = landmarks[i];
-    LandmarkObs current(mapLandmark.id_i, mapLandmark.x_f, mapLandmark.y_f);
-    this->mapSearch.insert(current);
-  }
-
-  this->mapSearch.optimize();
 
   normal_distribution<double> x_gen(x, std[0]);
   normal_distribution<double> y_gen(y, std[1]);
@@ -96,11 +86,28 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   double stdX = std_landmark[0];
   double stdY = std_landmark[1];
   auto mapLandmarks = map_landmarks.landmark_list;
+  vector<LandmarkObs> onRangeMapLandmarks;
 
   for(int i = 0; i < this->num_particles; ++i) {
     double particleX = this->particles[i].x;
     double particleY = this->particles[i].y;
     double particleTheta = this->particles[i].theta;
+
+    for (int j = 0; j < mapLandmarks.size(); j++) {
+
+      // get id and x,y coordinates
+      float mapLandX = mapLandmarks[j].x_f;
+      float mapLandY = mapLandmarks[j].y_f;
+      int landId = mapLandmarks[j].id_i;
+
+      // only consider landmarks within sensor range of the particle (rather than using the "dist" method considering a circular
+      // region around the particle, this considers a rectangular region but is computationally faster)
+      if (fabs(mapLandX - particleX) <= sensor_range && fabs(mapLandY - particleY) <= sensor_range) {
+
+        // add prediction to vector
+        onRangeMapLandmarks.push_back(LandmarkObs(landId, mapLandX, mapLandY));
+      }
+    }
 
     vector<LandmarkObs> predictionsPart(observations.size());
 
@@ -117,14 +124,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     for (int j = 0; j < predictionsPart.size(); ++j) {
       double predX = predictionsPart[j].getX();
       double predY = predictionsPart[j].getY();
-
-
-      std::pair<StdKDTree::const_iterator, double> found = this->mapSearch.find_nearest(predictionsPart[j]);
-      LandmarkObs nearest = *found.first;
-      double closestMarkX = nearest.getX(), closestMarkY = nearest.getY();
-      /*for (int k = 0; k < mapLandmarks.size(); ++k) {
-        double landX = mapLandmarks[k].x_f;
-        double landY = mapLandmarks[k].y_f;
+      double closestMarkX = 0.0, closestMarkY = 0.0, minDist = numeric_limits<double>::max();
+      for (int k = 0; k < onRangeMapLandmarks.size(); ++k) {
+        double landX = onRangeMapLandmarks[k].getX();
+        double landY = onRangeMapLandmarks[k].getY();
 
         double currentDist = dist(predX, predY, landX, landY);
         if(currentDist < minDist) {
@@ -132,7 +135,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
           closestMarkX = landX;
           closestMarkY = landY;
         }
-      }*/
+      }
 
       double currentWeight = multivariateGaussianProb(predX, predY, closestMarkX, closestMarkY, stdX, stdY);
       if(currentWeight > 0.0) {
