@@ -10,6 +10,7 @@
 #define PARTICLE_FILTER_H_
 
 #include "helper_functions.h"
+#include "kdtree.hpp"
 #include <random>
 #include <set>
 
@@ -18,6 +19,8 @@ struct alternate_tac
     typedef double result_type;
     double operator()( LandmarkObs const& t, size_t k ) const { return t[k]; }
 };
+
+typedef KDTree::KDTree<2, LandmarkObs,  alternate_tac> StdKDTree;
 
 struct Particle {
 
@@ -30,8 +33,6 @@ struct Particle {
 	std::vector<double> sense_x;
 	std::vector<double> sense_y;
 };
-
-
 
 class ParticleFilter {
 
@@ -47,6 +48,9 @@ class ParticleFilter {
 
   // engine for all random generators
   std::default_random_engine eng;
+
+  // KDTree map
+  StdKDTree mapSearch;
 public:
 	
 	// Set of current particles

@@ -23,8 +23,16 @@ void ParticleFilter::init(double x, double y, double theta, double std[], Map ma
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
-	this->num_particles = 1250;
+	this->num_particles = 50;
 	this->particles.resize(this->num_particles);
+
+  auto mapLandmarks = map_landmarks.landmark_list;
+  for(int i = 0; i < mapLandmarks.size(); ++i) {
+    auto mark = mapLandmarks[i];
+    LandmarkObs current = LandmarkObs(mark.id_i, mark.x_f, mark.y_f);
+    this->mapSearch.insert(current);
+  }
+  this->mapSearch.optimise();
 
   normal_distribution<double> x_gen(x, std[0]);
   normal_distribution<double> y_gen(y, std[1]);
@@ -107,7 +115,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     for (int j = 0; j < predictionsPart.size(); ++j) {
       double predX = predictionsPart[j].getX();
       double predY = predictionsPart[j].getY();
-      double closestMarkX = 0.0, closestMarkY = 0.0, minDist = numeric_limits<double>::max();
+
+      LandmarkObs found = *(this->mapSearch.find_nearest(predictionsPart[j])).first;
+
+      double closestMarkX = found.getX(), closestMarkY = found.getY();
+      /*double minDist = numeric_limits<double>::max();
       for (int k = 0; k < mapLandmarks.size(); ++k) {
         double landX = mapLandmarks[k].x_f;
         double landY = mapLandmarks[k].y_f;
@@ -118,7 +130,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
           closestMarkX = landX;
           closestMarkY = landY;
         }
-      }
+      }*/
 
       double currentWeight = multivariateGaussianProb(predX, predY, closestMarkX, closestMarkY, stdX, stdY);
       if(currentWeight > 0.0) {
@@ -209,7 +221,7 @@ string ParticleFilter::getSenseY(Particle best)
 }
 
 Particle ParticleFilter::move(Particle p, double delta_t, normal_distribution<double> stds[], double velocity, double yaw_rate) {
-  if(yaw_rate < 1e-9) {
+  if(yaw_rate == 0.0) {
     p.x += velocity * cos(p.theta) * delta_t;
     p.y += velocity * sin(p.theta) * delta_t;
   } else {
