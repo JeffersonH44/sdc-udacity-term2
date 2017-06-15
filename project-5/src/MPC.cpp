@@ -19,15 +19,15 @@ const size_t delta_start = epsi_start + N;
 const size_t a_start = delta_start + N - 1;
 
 // parameters of the model
-double paramCte = 100;
-double paramEpsi = 100;
-double paramVel = 1.0;
-double paramDelta = 2000.0;
-double paramAcceleration = 1.0;
-double paramDeltaDiff = 3000;
-double paramAccDiff = 50;
+const double paramCte = 3000;
+const double paramEpsi = 1000;
+const double paramVel = 1.0;
+const double paramDelta = 2000.0;
+const double paramAcceleration = 1.0;
+const double paramDeltaDiff = 5000;
+const double paramAccDiff = 10000;
 
-const double ref_v = 50;
+const const double ref_v = 50;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -268,7 +268,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   for(int i = 0; i < N - 1; ++i) {
     xPred.push_back(solution.x[x_start + i + 1]);
-    yPred.push_back(solution.x[y_start + i] + 1);
+    yPred.push_back(solution.x[y_start + i + 1]);
   }
 
   std::cout << "CTE: " << solution.x[cte_start] << " Cost: " << cost << std::endl;
