@@ -11,6 +11,8 @@ class MPC {
   MPC();
 
   virtual ~MPC();
+  vector<double> xPred, yPred;
+
 
   // Solve the model given an initial state and polynomial coefficients.
   // Return the first actuatotions.
