@@ -12,6 +12,8 @@
 // for convenience
 using json = nlohmann::json;
 
+const double Lf = 2.67;
+
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
@@ -104,12 +106,11 @@ int main() {
           double acceleration = j[1]["throttle"];
 
           // latency same as the model
-          double latency = 0.1;
-          double Lf = 2.67;
+          /*double latency = 0.1;
           double predX = x + v*cos(psi)*latency;
           double predY = y + v*sin(psi)*latency;
           double predPsi = psi + v/Lf*delta*latency;
-          double predV = v + acceleration*latency;
+          double predV = v + acceleration*latency;*/
 
           /*
           * TODO: Calculate steering angle and throttle using MPC.
@@ -119,29 +120,26 @@ int main() {
           */
 
           // convert from map coordinates to car coordinates
-          vector<double> pX(ptsx.size());
-          vector<double> pY(ptsy.size());
+          Eigen::VectorXd pointsX(ptsx.size());
+          Eigen::VectorXd pointsY(ptsy.size());
           for(int i = 0; i < ptsx.size(); ++i) {
-            double xDiff = ptsx[i] - predX;
-            double yDiff = ptsy[i] - predY;
+            double xDiff = ptsx[i] - x;
+            double yDiff = ptsy[i] - y;
 
-            pX[i] = (xDiff * cos(-predPsi) + yDiff * sin(-predPsi));
-            pY[i] = (xDiff * sin(-predPsi) + yDiff * cos(-predPsi));
+            pointsX[i] = (xDiff * cos(-psi) - yDiff * sin(-psi));
+            pointsY[i] = (xDiff * sin(-psi) + yDiff * cos(-psi));
           }
 
-          Eigen::Map<Eigen::VectorXd> pointsX(pX.data(), ptsx.size());
-          Eigen::Map<Eigen::VectorXd> pointsY(pY.data(), ptsy.size());
-
           auto coeffs = polyfit(pointsX, pointsY, 3);
-          double cte = polyeval(coeffs, x) - y;
+          double cte = polyeval(coeffs, 0);
           double epsi = -atan(coeffs[1]);
 
           Eigen::VectorXd state(6);
-          state << 0, 0, 0, predV, cte, epsi;
+          state << 0, 0, 0, v, cte, epsi;
 
           auto solutions = mpc.Solve(state, coeffs);
 
-          double steer_value = solutions[0] / (deg2rad(25));
+          double steer_value = solutions[0]; // (deg2rad(25) * Lf);
           double throttle_value = solutions[1];
 
           json msgJson;
