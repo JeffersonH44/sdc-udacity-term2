@@ -82,11 +82,10 @@ int main()
           }
 
           if(applyTwiddle) {
-            currentIteration = 0;
-          } else {
+            currentIteration++;
             if(currentIteration == twiddleUpdate) {
               pid.twiddle();
-              currentIteration++;
+              currentIteration = 0;
             }
           }
 
