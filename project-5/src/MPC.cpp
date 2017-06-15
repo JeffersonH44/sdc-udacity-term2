@@ -19,15 +19,15 @@ const size_t delta_start = epsi_start + N;
 const size_t a_start = delta_start + N - 1;
 
 // parameters of the model
-double paramCte = 50;
-double paramEpsi = 400;
+double paramCte = 100;
+double paramEpsi = 100;
 double paramVel = 1.0;
-double paramDelta = 1.0;
+double paramDelta = 2000.0;
 double paramAcceleration = 1.0;
-double paramDeltaDiff = 100;
-double paramAccDiff = 1.0;
+double paramDeltaDiff = 3000;
+double paramAccDiff = 50;
 
-const double ref_v = 30;
+const double ref_v = 50;
 
 // This value assumes the model presented in the classroom is used.
 //
