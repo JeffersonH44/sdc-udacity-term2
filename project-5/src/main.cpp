@@ -105,13 +105,6 @@ int main() {
           double delta = j[1]["steering_angle"];
           double acceleration = j[1]["throttle"];
 
-          // latency same as the model
-          /*double latency = 0.1;
-          double predX = x + v*cos(psi)*latency;
-          double predY = y + v*sin(psi)*latency;
-          double predPsi = psi + v/Lf*delta*latency;
-          double predV = v + acceleration*latency;*/
-
           /*
           * TODO: Calculate steering angle and throttle using MPC.
           *
