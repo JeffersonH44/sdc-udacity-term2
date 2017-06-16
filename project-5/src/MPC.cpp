@@ -18,7 +18,7 @@ const size_t epsi_start = cte_start + N;
 const size_t delta_start = epsi_start + N;
 const size_t a_start = delta_start + N - 1;
 
-// parameters of the model
+// parameters of the cost function
 const double paramCte = 3000;
 const double paramEpsi = 1000;
 const double paramVel = 1.0;

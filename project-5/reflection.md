@@ -115,3 +115,47 @@ parameter of the MPC model for prediction help a lot with that delay,
 
 Also I think that this delay should be bigger because you have 
 to consider all the computations that make a self-driving car.
+
+## Parameters for cost function
+
+The way that I calculate the cost function is the following
+```
+const double paramCte = 3000;
+const double paramEpsi = 1000;
+const double paramVel = 1.0;
+const double paramDelta = 2000.0;
+const double paramAcceleration = 1.0;
+const double paramDeltaDiff = 5000;
+const double paramAccDiff = 10000;
+
+// cost over cte and direction, and velocity should be close to the reference value
+for (int t = 0; t < N; ++t) {
+  fg[0] += paramCte * CppAD::pow(vars[cte_start + t], 2);
+  fg[0] += paramEpsi * CppAD::pow(vars[epsi_start + t], 2);
+  fg[0] += paramVel * CppAD::pow(vars[v_start + t] - ref_v, 2);
+}
+
+// actuators cost function
+for (int t = 0; t < N - 1; ++t) {
+  fg[0] += paramDelta * CppAD::pow(vars[delta_start + t], 2);
+  fg[0] += paramAcceleration * CppAD::pow(vars[a_start + t], 2);
+}
+
+// actuators should act smoothly between timesteps so we take in count the current and the previous timestep
+for (int t = 0; t < N - 2; ++t) {
+  fg[0] += paramDeltaDiff * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+  fg[0] += paramAccDiff * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+}
+```
+
+I used a very high value for 'paramDeltaDiff' and 'paramDeltaDiff'
+because a very drastic change of this values make car unstable on 
+the road so I penalize these values more than the other ones. I 
+don't penalize too much the epsi value to make the car arrive 
+smoothly to the desired trajectory.
+
+The velocity wasn't penalized too much otherwise the car
+doens't get the 50 mph that is the reference velocity, also 
+the acceleration was not necessary because I penalize the 
+acceleration between two timesteps.
+
